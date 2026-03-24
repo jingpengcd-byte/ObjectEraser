@@ -1,0 +1,24 @@
+# LaMa演示系统依赖
+
+# Web框架
+Flask==2.3.2
+Flask-CORS==4.0.0
+
+# 图像处理
+opencv-python==4.8.0.74
+Pillow==10.0.0
+numpy==1.24.3
+
+# 深度学习
+torch==1.13.1
+torchvision==0.14.1
+
+# 其他工具
+pyyaml==6.0
+tqdm==4.66.1
+requests==2.31.0
+
+# 开发工具（可选）
+python-dotenv==1.0.0
+black==23.9.1
+flake8==6.1.0

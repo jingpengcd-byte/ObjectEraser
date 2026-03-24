@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaMa图像修复演示系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=asset_version) }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-magic"></i>
+                <h1>LaMa图像修复演示系统</h1>
+            </div>
+            <div class="status" id="status">
+                <i class="fas fa-circle status-dot"></i>
+                <span>加载中...</span>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- 步骤指示器 -->
+            <div class="steps">
+                <div class="step active" data-step="1">
+                    <div class="step-number">1</div>
+                    <div class="step-label">上传图像</div>
+                </div>
+                <div class="step" data-step="2">
+                    <div class="step-number">2</div>
+                    <div class="step-label">创建掩码</div>
+                </div>
+                <div class="step" data-step="3">
+                    <div class="step-number">3</div>
+                    <div class="step-label">图像修复</div>
+                </div>
+                <div class="step" data-step="4">
+                    <div class="step-number">4</div>
+                    <div class="step-label">结果下载</div>
+                </div>
+            </div>
+
+            <!-- 步骤内容 -->
+            <div class="step-content">
+                <!-- 步骤1: 上传图像 -->
+                <div class="step-panel active" id="step1">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-cloud-upload-alt"></i> 上传图像</h2>
+                        <p>选择需要修复的图像文件（支持PNG、JPG、BMP等格式）</p>
+                    </div>
+                    <div class="panel-body">
+                        <div class="upload-area" id="uploadArea">
+                            <i class="fas fa-images"></i>
+                            <p>拖放图像文件到此处，或点击选择文件</p>
+                            <div class="file-picker-wrap">
+                                <button type="button" id="chooseFileBtn" class="btn btn-primary file-picker-btn">选择文件</button>
+                                <input type="file" id="fileInput" class="file-input-overlay" accept=".png,.jpg,.jpeg,.bmp,.tiff,.webp">
+                            </div>
+                        </div>
+                        <div class="image-preview" id="imagePreview" style="display: none;">
+                            <h3>图像预览</h3>
+                            <div class="preview-container">
+                                <img id="previewImage" alt="预览图像">
+                            </div>
+                            <div class="image-info">
+                                <div class="info-item">
+                                    <span class="label">文件名:</span>
+                                    <span id="fileName" class="value"></span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">尺寸:</span>
+                                    <span id="imageSize" class="value"></span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">分辨率:</span>
+                                    <span id="imageResolution" class="value"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-footer">
+                        <button class="btn btn-next" onclick="nextStep(2)" disabled id="nextStep1">
+                            下一步 <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 步骤2: 创建掩码 -->
+                <div class="step-panel" id="step2">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-paint-brush"></i> 创建掩码</h2>
+                        <p>标记需要修复的区域（黑色表示保留，白色表示修复）</p>
+                    </div>
+                    <div class="panel-body">
+                        <div class="mask-tools">
+                            <div class="tool-options">
+                                <div class="tool-group">
+                                    <h4>画笔工具</h4>
+                                    <div class="tool-buttons">
+                                        <button class="tool-btn active" data-tool="brush">
+                                            <i class="fas fa-paint-brush"></i> 画笔
+                                        </button>
+                                        <button class="tool-btn" data-tool="rectangle">
+                                            <i class="fas fa-square"></i> 矩形
+                                        </button>
+                                        <button class="tool-btn" data-tool="eraser">
+                                            <i class="fas fa-eraser"></i> 橡皮擦
+                                        </button>
+                                    </div>
+                                    <div class="brush-settings">
+                                        <label for="brushSize">画笔大小:</label>
+                                        <input type="range" id="brushSize" min="5" max="100" value="20">
+                                        <span id="brushSizeValue">20</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="canvas-container">
+                                <div class="canvas-wrapper">
+                                    <canvas id="maskCanvas"></canvas>
+                                    <canvas id="drawCanvas"></canvas>
+                                </div>
+                                <div class="canvas-controls">
+                                    <button class="btn btn-secondary" onclick="clearMask()">
+                                        <i class="fas fa-trash"></i> 清除
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="undoMask()">
+                                        <i class="fas fa-undo"></i> 撤销
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="fillMask()">
+                                        <i class="fas fa-fill"></i> 填充
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-footer">
+                        <button class="btn btn-prev" onclick="prevStep(1)">
+                            <i class="fas fa-arrow-left"></i> 上一步
+                        </button>
+                        <button class="btn btn-next" onclick="nextStep(3)" disabled id="nextStep2">
+                            下一步 <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 步骤3: 图像修复 -->
+                <div class="step-panel" id="step3">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-magic"></i> 图像修复</h2>
+                        <p>使用LaMa模型修复标记的区域</p>
+                    </div>
+                    <div class="panel-body">
+                        <div class="inpaint-options">
+                            <div class="option-group">
+                                <h4>修复选项</h4>
+                                <div class="checkbox-option">
+                                    <input type="checkbox" id="refineOption">
+                                    <label for="refineOption">
+                                        <i class="fas fa-sync-alt"></i> 启用精炼算法
+                                        <span class="option-hint">（更高质量但需要更长时间）</span>
+                                    </label>
+                                </div>
+                                <div class="checkbox-option">
+                                    <input type="checkbox" id="autoResizeOption" checked>
+                                    <label for="autoResizeOption">
+                                        <i class="fas fa-compress-alt"></i> 启用自动长边缩放
+                                    </label>
+                                </div>
+                                <div class="checkbox-option">
+                                    <input type="checkbox" id="roiOption" checked>
+                                    <label for="roiOption">
+                                        <i class="fas fa-crop-alt"></i> 启用局部ROI推理
+                                    </label>
+                                </div>
+                                <div class="brush-settings">
+                                    <label for="maxLongSideInput">长边上限:</label>
+                                    <input type="number" id="maxLongSideInput" min="512" max="4096" step="64" value="1536">
+                                    <span>px</span>
+                                </div>
+                                <div class="brush-settings">
+                                    <label for="roiPaddingInput">ROI扩边:</label>
+                                    <input type="number" id="roiPaddingInput" min="0" max="1024" step="16" value="128">
+                                    <span>px</span>
+                                </div>
+                                <div class="option-info">
+                                    <p><i class="fas fa-info-circle"></i> 提示：精炼算法适用于高质量修复，标准算法速度更快。</p>
+                                </div>
+                            </div>
+                            <div class="preview-comparison">
+                                <div class="comparison-item">
+                                    <h4>原始图像</h4>
+                                    <div class="comparison-image" id="originalPreview"></div>
+                                </div>
+                                <div class="comparison-item">
+                                    <h4>掩码区域</h4>
+                                    <div class="comparison-image" id="maskPreview"></div>
+                                </div>
+                                <div class="comparison-item">
+                                    <h4>修复结果</h4>
+                                    <div class="comparison-image" id="resultPreview">
+                                        <div class="result-placeholder">
+                                            <i class="fas fa-hourglass-half"></i>
+                                            <p>等待修复...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-footer">
+                        <button class="btn btn-prev" onclick="prevStep(2)">
+                            <i class="fas fa-arrow-left"></i> 上一步
+                        </button>
+                        <button class="btn btn-primary" onclick="startInpainting()" id="inpaintBtn">
+                            <i class="fas fa-play"></i> 开始修复
+                        </button>
+                        <button class="btn btn-next" onclick="nextStep(4)" disabled id="nextStep3">
+                            下一步 <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 步骤4: 结果下载 -->
+                <div class="step-panel" id="step4">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-download"></i> 结果下载</h2>
+                        <p>修复完成，可以下载结果或重新开始</p>
+                    </div>
+                    <div class="panel-body">
+                        <div class="result-summary">
+                            <div class="success-message">
+                                <i class="fas fa-check-circle"></i>
+                                <h3>修复完成！</h3>
+                                <p>图像修复已成功完成，您可以下载结果或开始新的修复。</p>
+                            </div>
+                            <div class="result-details">
+                                <div class="detail-item">
+                                    <span class="label">处理时间:</span>
+                                    <span id="processTime" class="value">--</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">修复质量:</span>
+                                    <span id="qualityLevel" class="value">标准</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">文件大小:</span>
+                                    <span id="resultSize" class="value">--</span>
+                                </div>
+                            </div>
+                            <div class="result-actions">
+                                <button class="btn btn-download" onclick="downloadResult()">
+                                    <i class="fas fa-download"></i> 下载结果
+                                </button>
+                                <button class="btn btn-secondary" onclick="startOver()">
+                                    <i class="fas fa-redo"></i> 重新开始
+                                </button>
+                                <button class="btn btn-secondary" onclick="copyResultLink()">
+                                    <i class="fas fa-link"></i> 复制链接
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-footer">
+                        <button class="btn btn-prev" onclick="prevStep(3)">
+                            <i class="fas fa-arrow-left"></i> 上一步
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-info">
+                <p>
+                    <i class="fas fa-code"></i> LaMa图像修复演示系统 v1.0 |
+                    <i class="fas fa-github"></i> 
+                    <a href="https://github.com/advimman/lama" target="_blank">GitHub项目</a> |
+                    <i class="fas fa-book"></i> 
+                    <a href="https://arxiv.org/abs/2109.07161" target="_blank">论文</a>
+                </p>
+            </div>
+            <div class="footer-tech">
+                <span class="tech-badge">
+                    <i class="fab fa-python"></i> Python
+                </span>
+                <span class="tech-badge">
+                    <i class="fas fa-fire"></i> Flask
+                </span>
+                <span class="tech-badge">
+                    <i class="fab fa-pytorch"></i> PyTorch
+                </span>
+                <span class="tech-badge">
+                    <i class="fas fa-robot"></i> LaMa
+                </span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 加载指示器 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p id="loadingMessage">正在处理...</p>
+            <div class="loading-progress-track">
+                <div class="loading-progress-bar" id="loadingProgressBar"></div>
+            </div>
+            <p id="loadingProgressText">0%</p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js', v=asset_version) }}"></script>
+</body>
+</html>
